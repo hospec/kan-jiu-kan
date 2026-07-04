@@ -13,7 +13,6 @@ class ChannelListScreen extends StatefulWidget {
 
 class _ChannelListScreenState extends State<ChannelListScreen> {
   final _channelManager = ChannelManager();
-  final Map<String, FocusNode> _cardFocusNodes = {};
   Map<String, List<Channel>> _categorizedChannels = {};
   String _selectedCategory = '';
   bool _loading = true;
@@ -22,45 +21,50 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadChannels();
+    _initChannels();
   }
 
-  @override
-  void dispose() {
-    for (final node in _cardFocusNodes.values) {
-      node.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> _loadChannels() async {
+  Future<void> _initChannels() async {
     setState(() => _loading = true);
     try {
-      // First launch: load from bundled asset
       final count = await _channelManager.getChannelCount();
       if (count == 0) {
         await _channelManager.importFromAsset();
       }
-      _categorizedChannels = await _channelManager.getCategorizedChannels();
-      _categories = _categorizedChannels.keys.toList();
-      _categories.sort((a, b) {
+      final categorized = await _channelManager.getCategorizedChannels();
+      final cats = categorized.keys.toList();
+      cats.sort((a, b) {
         const order = {'央视': 0, '卫视': 1, '广东本地': 2, '香港': 3};
         return (order[a] ?? 99).compareTo(order[b] ?? 99);
       });
-      if (_selectedCategory.isEmpty && _categories.isNotEmpty) {
-        _selectedCategory = _categories.first;
+      if (mounted) {
+        setState(() {
+          _categorizedChannels = categorized;
+          _categories = cats;
+          if (_selectedCategory.isEmpty && cats.isNotEmpty) {
+            _selectedCategory = cats.first;
+          }
+          _loading = false;
+        });
       }
     } catch (e) {
-      _showError('加载频道失败: $e');
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载失败: \$e'), backgroundColor: Colors.red[800]),
+        );
+      }
     }
-    setState(() => _loading = false);
   }
 
-  void _showError(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.red[800]),
-    );
+  Future<void> _refreshChannels() async {
+    setState(() => _loading = true);
+    try {
+      await _channelManager.importFromAsset();
+      await _initChannels();
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -79,7 +83,6 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
     return Column(
       children: [
-        // 顶部标题栏
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
           child: Row(
@@ -87,13 +90,10 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
               const Text('想看就看',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFFE53935))),
               const Spacer(),
-              _buildActionButton(Icons.refresh, '刷新信号源', _onRefreshSources),
-              const SizedBox(width: 16),
-              _buildActionButton(Icons.sync, '快速更新', _onQuickUpdate),
+              _buildActionButton(Icons.refresh, '刷新频道', _refreshChannels),
             ],
           ),
         ),
-        // 分类标签
         if (_categories.isNotEmpty)
           CategoryTabs(
             categories: _categories,
@@ -101,10 +101,9 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
             onChanged: (cat) => setState(() => _selectedCategory = cat),
           ),
         const SizedBox(height: 16),
-        // 频道网格
         Expanded(
           child: channels.isEmpty
-              ? const Center(child: Text('暂无频道数据,请点击刷新按钮更新信号源', style: TextStyle(fontSize: 18, color: Colors.grey)))
+              ? const Center(child: Text('暂无频道数据', style: TextStyle(fontSize: 18, color: Colors.grey)))
               : GridView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -115,13 +114,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
                   ),
                   itemCount: channels.length,
                   itemBuilder: (context, index) {
-                    return Focus(
-                      autofocus: index == 0,
-                      child: ChannelCard(
-                        channel: channels[index],
-                        focusNode: _cardFocusNodes.putIfAbsent(channels[index].id, () => FocusNode()),
-                      ),
-                    );
+                    return ChannelCard(channel: channels[index]);
                   },
                 ),
         ),
@@ -149,15 +142,5 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
         }),
       ),
     );
-  }
-
-  void _onRefreshSources() {
-    // TODO: 打开信号源更新页面 (QR code HTTP 服务)
-    _showError('信号源更新功能即将上线');
-  }
-
-  void _onQuickUpdate() {
-    // TODO: 快速更新 - 从内置源刷新
-    _loadChannels();
   }
 }
