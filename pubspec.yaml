@@ -1,0 +1,44 @@
+name: kan_jiu_kan
+description: "想看就看 — 智能电视直播"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.9
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 视频播放（硬解码，底层 ExoPlayer）
+  media_kit: ^1.2.0
+  media_kit_video: ^1.2.0
+  media_kit_libs_android_video: ^1.3.0
+
+  # HTTP 客户端（M3U 源下载、信号源检测）
+  dio: ^5.4.0
+
+  # 本地数据库（频道列表、信号源缓存）
+  sqflite: ^2.3.0
+  path: ^1.8.0
+
+  # 本地 HTTP 服务器（接收手机/Mac 上传的 M3U 内容）
+  shelf: ^1.4.0
+  shelf_router: ^1.1.0
+  shelf_static: ^1.1.0
+
+  # 二维码生成（TV 屏幕显示，手机扫码）
+  qr_flutter: ^4.1.0
+
+  # 工具
+  path_provider: ^2.1.0
+  shared_preferences: ^2.2.0
+  uuid: ^4.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
