@@ -7,9 +7,9 @@ import 'm3u_parser.dart';
 
 const _categoryPatterns = <String, List<String>>{
   '央视': ['CCTV', 'CGTN'],
-  '卫视': ['卫视', 'TV'],
-  '广东本地': ['广东', '珠江', '民生', '大湾区', '南方', '广州', '深圳'],
   '香港': ['翡翠', '凤凰', 'TVB', 'ViuTV', 'HOY', '明珠', '无线', '港台'],
+  '广东本地': ['广东', '珠江', '民生', '大湾区', '南方', '广州', '深圳'],
+  '卫视': ['卫视'],
 };
 
 class ChannelManager {
