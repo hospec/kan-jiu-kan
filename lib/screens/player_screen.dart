@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
@@ -11,41 +10,13 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  late final Player _player;
-  late final VideoController _controller;
+  VideoPlayerController? _controller;
   bool _showInfo = false;
   bool _loading = true;
   bool _error = false;
   String _errorMsg = '';
   String _channelName = '';
   String _sourceUrl = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _player = Player(
-      configuration: const PlayerConfiguration(
-        title: '想看就看',
-      ),
-    );
-    _controller = VideoController(_player);
-
-    _player.stream.error.listen((e) {
-      if (mounted) {
-        setState(() {
-          _error = true;
-          _errorMsg = e.toString();
-          _loading = false;
-        });
-      }
-    });
-
-    _player.stream.playing.listen((playing) {
-      if (playing && mounted) {
-        setState(() => _loading = false);
-      }
-    });
-  }
 
   @override
   void didChangeDependencies() {
@@ -57,22 +28,69 @@ class _PlayerScreenState extends State<PlayerScreen> {
       if (name != _channelName || url != _sourceUrl) {
         _channelName = name;
         _sourceUrl = url;
-        if (_sourceUrl.isNotEmpty) {
-          _player.open(Media(
-            _sourceUrl,
-            httpHeaders: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Referer': 'https://live.fanmingming.com/',
-            },
-          ));
+        _initPlayer();
+      }
+    }
+  }
+
+  Future<void> _initPlayer() async {
+    _controller?.dispose();
+    if (_sourceUrl.isEmpty) return;
+
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+
+    try {
+      final uri = Uri.parse(_sourceUrl);
+      final controller = VideoPlayerController.networkUrl(
+        uri,
+        httpHeaders: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://live.fanmingming.com/',
+        },
+      );
+
+      await controller.initialize();
+      await controller.play();
+
+      controller.addListener(() {
+        if (mounted) {
+          final isPlaying = controller.value.isPlaying;
+          final hasError = controller.value.hasError;
+          if (hasError) {
+            setState(() {
+              _error = true;
+              _errorMsg = controller.value.errorDescription ?? '未知错误';
+              _loading = false;
+            });
+          } else if (isPlaying) {
+            setState(() => _loading = false);
+          }
         }
+      });
+
+      if (mounted) {
+        _controller = controller;
+        if (controller.value.isInitialized && !controller.value.hasError) {
+          setState(() => _loading = false);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = true;
+          _errorMsg = e.toString();
+          _loading = false;
+        });
       }
     }
   }
 
   @override
   void dispose() {
-    _player.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -94,8 +112,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 setState(() => _showInfo = false);
                 return KeyEventResult.handled;
               }
-              if (event.logicalKey == LogicalKeyboardKey.goBack ||
-                  event.logicalKey == LogicalKeyboardKey.escape) {
+              if (event.logicalKey == LogicalKeyboardKey.goBack) {
                 Navigator.pop(context);
                 return KeyEventResult.handled;
               }
@@ -106,9 +123,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
             fit: StackFit.expand,
             children: [
               // Video
-              Video(controller: _controller),
+              if (_controller != null && _controller!.value.isInitialized)
+                Center(
+                  child: AspectRatio(
+                    aspectRatio: _controller!.value.aspectRatio,
+                    child: VideoPlayer(_controller!),
+                  ),
+                ),
 
-              // Loading indicator
+              // Loading
               if (_loading && !_error)
                 Container(
                   color: Colors.black87,
@@ -116,22 +139,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(
-                          width: 60, height: 60,
-                          child: CircularProgressIndicator(color: Color(0xFFE53935), strokeWidth: 4),
-                        ),
+                        const SizedBox(width: 60, height: 60,
+                            child: CircularProgressIndicator(color: Color(0xFFE53935), strokeWidth: 4)),
                         const SizedBox(height: 24),
-                        Text(_channelName,
-                            style: const TextStyle(fontSize: 24, color: Colors.white)),
+                        Text(_channelName, style: const TextStyle(fontSize: 24, color: Colors.white)),
                         const SizedBox(height: 8),
-                        const Text('正在加载直播流...',
-                            style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        const Text('正在加载直播流...', style: TextStyle(fontSize: 16, color: Colors.grey)),
                       ],
                     ),
                   ),
                 ),
 
-              // Error display
+              // Error
               if (_error)
                 Container(
                   color: Colors.black,
@@ -146,16 +165,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           const Text('播放失败',
                               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                           const SizedBox(height: 12),
-                          Text(_channelName,
-                              style: const TextStyle(fontSize: 20, color: Colors.grey)),
+                          Text(_channelName, style: const TextStyle(fontSize: 20, color: Colors.grey)),
                           const SizedBox(height: 16),
                           Text(_errorMsg,
                               style: const TextStyle(fontSize: 14, color: Colors.redAccent),
-                              textAlign: TextAlign.center,
-                              maxLines: 3),
+                              textAlign: TextAlign.center, maxLines: 3),
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
-                            onPressed: _retry,
+                            onPressed: _initPlayer,
                             icon: const Icon(Icons.refresh),
                             label: const Text('重试'),
                             style: ElevatedButton.styleFrom(
@@ -170,7 +187,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
                 ),
 
-              // Bottom info bar
+              // Info bar
               if (_showInfo && !_error)
                 Positioned(
                   bottom: 0, left: 0, right: 0,
@@ -194,21 +211,5 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
       ),
     );
-  }
-
-  void _retry() {
-    setState(() {
-      _error = false;
-      _loading = true;
-    });
-    if (_sourceUrl.isNotEmpty) {
-      _player.open(Media(
-        _sourceUrl,
-        httpHeaders: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': 'https://live.fanmingming.com/',
-        },
-      ));
-    }
   }
 }

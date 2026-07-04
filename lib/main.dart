@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
 import 'screens/channel_list_screen.dart';
 import 'screens/player_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  MediaKit.ensureInitialized();
   runApp(const KanJiuKanApp());
 }
 
