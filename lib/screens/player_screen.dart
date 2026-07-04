@@ -81,7 +81,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   color: Colors.black87,
                   child: Row(
                     children: [
-                      Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text(name2, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
                       const Spacer(),
                       Text(url, style: const TextStyle(fontSize: 14, color: Colors.grey), overflow: TextOverflow.ellipsis),
                     ],

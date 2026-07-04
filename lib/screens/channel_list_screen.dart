@@ -27,6 +27,11 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   Future<void> _loadChannels() async {
     setState(() => _loading = true);
     try {
+      // First launch: load from bundled asset
+      final count = await _channelManager.getChannelCount();
+      if (count == 0) {
+        await _channelManager.importFromAsset();
+      }
       _categorizedChannels = await _channelManager.getCategorizedChannels();
       _categories = _categorizedChannels.keys.toList();
       _categories.sort((a, b) {

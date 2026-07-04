@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
 import 'screens/channel_list_screen.dart';
 import 'screens/player_screen.dart';
 
-void main() => runApp(const KanJiuKanApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
+  runApp(const KanJiuKanApp());
+}
 
 class KanJiuKanApp extends StatelessWidget {
   const KanJiuKanApp({super.key});
