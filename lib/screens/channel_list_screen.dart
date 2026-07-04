@@ -13,6 +13,7 @@ class ChannelListScreen extends StatefulWidget {
 
 class _ChannelListScreenState extends State<ChannelListScreen> {
   final _channelManager = ChannelManager();
+  final Map<String, FocusNode> _cardFocusNodes = {};
   Map<String, List<Channel>> _categorizedChannels = {};
   String _selectedCategory = '';
   bool _loading = true;
@@ -22,6 +23,14 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   void initState() {
     super.initState();
     _loadChannels();
+  }
+
+  @override
+  void dispose() {
+    for (final node in _cardFocusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadChannels() async {
@@ -106,7 +115,13 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
                   ),
                   itemCount: channels.length,
                   itemBuilder: (context, index) {
-                    return ChannelCard(channel: channels[index]);
+                    return Focus(
+                      autofocus: index == 0,
+                      child: ChannelCard(
+                        channel: channels[index],
+                        focusNode: _cardFocusNodes.putIfAbsent(channels[index].id, () => FocusNode()),
+                      ),
+                    );
                   },
                 ),
         ),

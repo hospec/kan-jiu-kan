@@ -4,7 +4,8 @@ import '../services/channel_manager.dart';
 
 class ChannelCard extends StatefulWidget {
   final Channel channel;
-  const ChannelCard({super.key, required this.channel});
+  final FocusNode focusNode;
+  const ChannelCard({super.key, required this.channel, required this.focusNode});
 
   @override
   State<ChannelCard> createState() => _ChannelCardState();
@@ -18,6 +19,17 @@ class _ChannelCardState extends State<ChannelCard> {
   void initState() {
     super.initState();
     _loadSource();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadSource() async {
@@ -31,7 +43,7 @@ class _ChannelCardState extends State<ChannelCard> {
 
   @override
   Widget build(BuildContext context) {
-    final hasFocus = Focus.of(context).hasFocus;
+    final hasFocus = widget.focusNode.hasFocus;
 
     return GestureDetector(
       onTap: _sourceUrl != null ? () => _openPlayer(_sourceUrl!) : null,
