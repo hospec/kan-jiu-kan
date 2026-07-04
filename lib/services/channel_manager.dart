@@ -43,10 +43,10 @@ class ChannelManager {
     final content = await rootBundle.loadString(assetPath);
     final result = _parser.parse(content);
     final items = _buildChannelsAndSources(result);
-    await _db.clearAll();
+    print('Parsed channels: \${items.channels.length}'); await _db.clearAll();
     await _db.insertChannels(items.channels);
     await _db.insertSources(items.sources);
-    return ChannelImportResult(channelCount: items.channels.length, sourceCount: items.sources.length);
+    print('Inserted channels: \${items.channels.length}, sources: \${items.sources.length}'); print('Categories: \${items.channels.map((c) => c.category).toSet()}'); return ChannelImportResult(channelCount: items.channels.length, sourceCount: items.sources.length);
   }
 
   _ChannelSourcePair _buildChannelsAndSources(M3UParseResult result) {

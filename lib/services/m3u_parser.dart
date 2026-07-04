@@ -33,7 +33,7 @@ class M3UParser {
         currentName = null;
       }
     }
-    return M3UParseResult(channels: channels, totalEntries: entries);
+    print('M3U Parser: \${channels.length} channels, \${entries} entries total'); return M3UParseResult(channels: channels, totalEntries: entries);
   }
 
   String _extractChannelName(String extinfLine) {
