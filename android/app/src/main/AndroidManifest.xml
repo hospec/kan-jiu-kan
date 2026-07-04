@@ -14,7 +14,7 @@
         android:label="想看就看"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:banner="@mipmap/ic_banner">
+        android:banner="@drawable/tv_banner">
 
         <activity
             android:name=".MainActivity"
